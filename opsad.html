@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC Builder Pro: Custom Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #020617; color: white; user-select: none; font-family: 'Rajdhani', sans-serif; background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #020617 100%); }
+        
+        /* Cores de Raridade */
+        .tier-low { border-left: 4px solid #94a3b8 !important; }    /* Cinza: Ruim */
+        .tier-mid { border-left: 4px solid #3b82f6 !important; }    /* Azul: Bom */
+        .tier-high { border-left: 4px solid #a855f7 !important; }   /* Roxo: Ótimo */
+        .tier-ultra { border-left: 4px solid #eab308 !important; }  /* Dourado: Lendário */
+
+        .component-card { 
+            background: rgba(30, 41, 59, 0.4); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .component-card:hover { 
+            background: rgba(255, 255, 255, 0.05);
+            transform: scale(1.02) translateX(5px);
+        }
+
+        .badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 800; background: rgba(0,0,0,0.3); }
+        
+        /* Resto do layout */
+        .case-slot { transition: all 0.2s; cursor: pointer; border: 2px dashed rgba(255,255,255,0.1); position: relative; }
+        .installed { border: 2px solid #3b82f6 !important; background: rgba(15, 23, 42, 0.9) !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+        .category-btn { font-size: 11px; font-weight: bold; padding: 8px; color: #64748b; border-bottom: 2px solid transparent; }
+        .category-btn.active { color: #3b82f6 !important; border-bottom-color: #3b82f6 !important; }
+
+        .motherboard-bg { 
+            background: #0f172a; 
+            background-image: 
+                radial-gradient(circle at 2px 2px, rgba(59, 130, 246, 0.15) 1px, transparent 0),
+                linear-gradient(45deg, transparent 45%, rgba(59, 130, 246, 0.05) 45%, rgba(59, 130, 246, 0.05) 55%, transparent 55%);
+            background-size: 20px 20px, 100px 100px;
+            border: 4px solid #1e293b;
+            position: relative;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.8), 0 0 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        /* Efeito de Trilhas de Circuito */
+        .motherboard-bg::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('https://www.transparenttextures.com/patterns/circuit-board.png');
+            opacity: 0.1;
+            pointer-events: none;
+        }
+
+        /* Dissipadores de Calor (Heatsinks) */
+        .heatsink {
+            background: linear-gradient(90deg, #334155, #1e293b, #334155);
+            border: 1px solid #475569;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            border-radius: 2px;
+        }
+
+        /* Estilo dos Eventos Aleatórios */
+        .event-card { 
+            animation: slideIn 0.4s ease-out;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            background: linear-gradient(to right, rgba(245, 158, 11, 0.1), transparent);
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .text-event { color: #f59e0b; font-weight: 800; text-transform: uppercase; font-size: 9px; }
+
+        .event-danger { border: 1px solid #ef4444; background: linear-gradient(to right, rgba(239, 68, 68, 0.1), transparent); }
+        .text-danger-event { color: #ef4444; font-weight: 800; text-transform: uppercase; font-size: 9px; }
+        
+        .event-success { border: 1px solid #10b981; background: linear-gradient(to right, rgba(16, 185, 129, 0.1), transparent); }
+        .text-success-event { color: #10b981; font-weight: 800; text-transform: uppercase; font-size: 9px; }
+    </style>
+</head>
+<body class="overflow-hidden">
+
+    <header class="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <div class="bg-blue-600 p-2 rounded-lg"><i class="fas fa-microchip text-white text-xl"></i></div>
+            <div>
+                <h1 class="font-bold text-lg tracking-tight">PC BUILDER <span class="text-blue-500">PRO</span></h1>
+                <span id="mode-display" class="text-[9px] text-slate-500 uppercase tracking-widest font-black">MODO: SANDBOX</span>
+            </div>
+        </div>
+
+        <div class="flex gap-8 items-center">
+            <div id="career-hud" class="hidden flex gap-6 items-center border-l border-slate-800 pl-6">
+                <div class="text-right">
+                    <div class="text-[9px] text-slate-500 uppercase">Saldo Disponível</div>
+                    <div id="career-money" class="text-yellow-500 font-bold text-lg">€ 1.000</div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-[10px] text-slate-500 uppercase">Custo da Build</div>
+                <div id="total-cost" class="text-green-400 font-bold text-lg">€ 0</div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="flex gap-2 px-8 py-2 bg-slate-900 border-b border-slate-800">
+        <button onclick="setMode('career')" id="btn-career" class="mode-btn">Carreira</button>
+        <button onclick="setMode('sandbox')" id="btn-sandbox" class="mode-btn active">Sandbox</button>
+    </nav>
+
+    <main class="flex h-[calc(100vh-108px)]">
+        <aside class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col">
+            <div id="contract-card" class="hidden p-4 bg-blue-900/10 border-b border-blue-500/20">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 id="contract-name" class="text-xs font-bold text-blue-400 uppercase"></h3>
+                </div>
+                <p id="contract-desc" class="text-[11px] text-slate-300 mb-3 leading-tight italic"></p>
+                <div class="grid grid-cols-2 gap-2 mb-3 text-[10px]">
+                    <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                        <div class="text-slate-500 uppercase">Budget</div>
+                        <div id="contract-budget" class="font-bold text-green-500"></div>
+                    </div>
+                    <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                        <div class="text-slate-500 uppercase">Recompensa</div>
+                        <div id="contract-reward" class="font-bold text-yellow-500"></div>
+                    </div>
+                </div>
+                <div id="contract-reqs" class="space-y-1"></div>
+            </div>
+
+            <div class="p-3 grid grid-cols-3 gap-1 border-b border-slate-800" id="category-tabs">
+                <button onclick="filterCategory('cpu')" data-type="cpu" class="category-btn">CPU</button>
+                <button onclick="filterCategory('gpu')" data-type="gpu" class="category-btn">GPU</button>
+                <button onclick="filterCategory('ram')" data-type="ram" class="category-btn">RAM</button>
+                <button onclick="filterCategory('ssd')" data-type="ssd" class="category-btn">DISCO</button>
+                <button onclick="filterCategory('psu')" data-type="psu" class="category-btn">FONTE</button>
+                <button onclick="filterCategory('all')" data-type="all" class="category-btn">TUDO</button>
+            </div>
+            <div id="inventory-list" class="flex-grow overflow-y-auto p-3 space-y-2"></div>
+            <div id="feedback-status" class="p-3 bg-slate-950 border-t border-slate-800 h-10 flex items-center justify-center">
+                <span id="status-text" class="status-msg text-slate-500">Selecione uma peça e clique no slot</span>
+            </div>
+        </aside>
+
+        <section class="flex-grow relative flex justify-center items-center bg-slate-950">
+            <div id="motherboard" class="motherboard-bg w-[600px] h-[750px] rounded-2xl p-10 relative">
+                <div class="heatsink absolute top-10 left-32 w-48 h-12"></div>
+                <div class="heatsink absolute top-24 left-20 w-10 h-40"></div>
+
+                <div id="slot-cpu" onclick="handleSlotInteraction('cpu')" 
+                     class="case-slot absolute top-28 left-36 w-32 h-32 rounded-lg bg-slate-900 border-2 border-slate-700 flex flex-col items-center justify-center">
+                    <i class="fas fa-microchip text-slate-800 text-3xl"></i>
+                    <span class="text-[8px] text-slate-600 mt-2 font-bold uppercase">Socket AM5 / LGA1700</span>
+                </div>
+
+                <div class="absolute top-24 left-[310px] flex gap-2">
+                    <div onclick="handleSlotInteraction('ram', 0)" id="ram-0" class="case-slot w-5 h-48 bg-slate-900 border border-slate-700"></div>
+                    <div onclick="handleSlotInteraction('ram', 1)" id="ram-1" class="case-slot w-5 h-48 bg-slate-900 border border-slate-700"></div>
+                    <div onclick="handleSlotInteraction('ram', 2)" id="ram-2" class="case-slot w-5 h-48 bg-slate-900 border border-slate-700"></div>
+                    <div onclick="handleSlotInteraction('ram', 3)" id="ram-3" class="case-slot w-5 h-48 bg-slate-900 border border-slate-700"></div>
+                </div>
+
+                <div id="slot-gpu" onclick="handleSlotInteraction('gpu')" 
+                     class="case-slot absolute top-[400px] left-16 w-[400px] h-8 bg-slate-900 border-2 border-slate-700">
+                    <span class="text-[9px] text-slate-700 font-bold uppercase tracking-widest">PCI Express x16 Gen 5</span>
+                </div>
+
+                <div id="slot-ssd" onclick="handleSlotInteraction('ssd')" 
+                     class="case-slot absolute top-[350px] left-16 w-32 h-6 bg-slate-900 border border-slate-700">
+                    <span class="text-[7px] text-slate-700 font-bold">M.2 NVME</span>
+                </div>
+
+                <div class="heatsink absolute bottom-32 right-20 w-24 h-24 flex items-center justify-center">
+                    <div class="w-16 h-16 border border-blue-500/20 rounded-full animate-pulse flex items-center justify-center">
+                         <i class="fas fa-shield-halved text-blue-500/30 text-xl"></i>
+                    </div>
+                </div>
+
+                <div id="slot-psu" onclick="handleSlotInteraction('psu')" 
+                     class="case-slot absolute bottom-10 left-10 w-40 h-24 bg-slate-900">
+                    <i class="fas fa-bolt text-slate-800 text-2xl"></i>
+                </div>
+            </div>
+
+            <div class="absolute bottom-8 right-8 flex flex-col gap-3 items-end">
+                <button id="btn-benchmark" onclick="runBenchmark()" class="hidden bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-full font-black shadow-xl scale-110 active:scale-95 transition-all">
+                    FINALIZAR BUILD <i class="fas fa-check-double ml-2"></i>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <div id="benchmark-modal" class="fixed inset-0 bg-slate-950/98 z-[100] hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="max-w-md w-full text-center p-8 bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl">
+            <div id="bench-loading">
+                <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+                <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400">Validando Build</h2>
+            </div>
+            <div id="bench-results" class="hidden">
+                <h2 id="result-title" class="text-2xl font-black mb-1"></h2>
+                <p id="result-msg" class="text-slate-400 text-xs mb-6"></p>
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 mb-6 text-left space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span id="payment-label" class="text-slate-500 text-[10px] uppercase">Recompensa:</span>
+                        <span id="res-reward" class="text-green-400 font-bold">€ 0</span>
+                    </div>
+                </div>
+                <button onclick="closeBenchmark()" class="w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-700 transition">CONTINUAR</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Banco de dados com as novas especificações
+        const database = [
+            // 🧠 CPUs (Score: Performance Multi-core | Power: TDP em Watts)
+            { id: 'cpu1', name: 'i3-12100F', type: 'cpu', info: '3.3GHz | 4 Nucleos', price: 110, score: 450, power: 65 },
+            { id: 'cpu2', name: 'Ryzen 5 5600', type: 'cpu', info: '3.5GHz | 6 Nucleos', price: 160, score: 650, power: 65 },
+            { id: 'cpu3', name: 'i5-13600K', type: 'cpu', info: '3.5GHz | 14 Nucleos', price: 320, score: 1100, power: 125 },
+            { id: 'cpu4', name: 'Ryzen 7 7800X3D', type: 'cpu', info: '4.2GHz | 8 Nucleos', price: 450, score: 1300, power: 120 },
+            { id: 'cpu5', name: 'i9-14900K', type: 'cpu', info: '3.2GHz | 24 Nucleos', price: 650, score: 1800, power: 253 },
+            { id: 'cpu6', name: 'Intel Pentium G4560', type: 'cpu', info: '3.5GHz | 2 Nucleos', price: 60, score: 180, power: 54 },
+            { id: 'cpu7', name: 'Intel Core i5-3470', type: 'cpu', info: '3.2GHz | 4 Nucleos', price: 50, score: 140, power: 77 },
+            { id: 'cpu8', name: 'AMD FX-8350', type: 'cpu', info: '4.0GHz | 8 Nucleos', price: 45, score: 130, power: 125 },
+            { id: 'cpu9', name: 'Intel Core i7-4770', type: 'cpu', info: '3.4GHz | 4 Nucleos', price: 80, score: 220, power: 84 },
+            { id: 'cpu10', name: 'Ryzen 3 1200', type: 'cpu', info: '3.1GHz | 4 Nucleos', price: 40, score: 190, power: 65 },
+            { id: 'cpu11', name: 'Ryzen 5 1600', type: 'cpu', info: '3.2GHz | 6 Nucleos', price: 90, score: 380, power: 65 },
+            { id: 'cpu12', name: 'Intel Core i5-8400', type: 'cpu', info: '2.8GHz | 6 Nucleos', price: 120, score: 420, power: 65 },
+            { id: 'cpu13', name: 'Intel Core i7-8700K', type: 'cpu', info: '3.7GHz | 6 Nucleos', price: 250, score: 580, power: 95 },
+            { id: 'cpu14', name: 'Ryzen 5 3600', type: 'cpu', info: '3.6GHz | 6 Nucleos', price: 200, score: 550, power: 65 },
+            { id: 'cpu15', name: 'Intel Core i9-9900K', type: 'cpu', info: '3.6GHz | 8 Nucleos', price: 500, score: 850, power: 95 },
+            { id: 'cpu16', name: 'Ryzen 7 5800X', type: 'cpu', info: '3.8GHz | 8 Nucleos', price: 400, score: 950, power: 105 },
+            { id: 'cpu17', name: 'Intel Core i5-12400F', type: 'cpu', info: '2.5GHz | 6 Nucleos', price: 180, score: 680, power: 65 },
+            { id: 'cpu18', name: 'Ryzen 9 5900X', type: 'cpu', info: '3.7GHz | 12 Nucleos', price: 550, score: 1400, power: 105 },
+            { id: 'cpu19', name: 'Intel Core i7-13700K', type: 'cpu', info: '3.4GHz | 16 Nucleos', price: 600, score: 1550, power: 125 },
+            { id: 'cpu20', name: 'Ryzen 9 7950X', type: 'cpu', info: '4.5GHz | 16 Nucleos', price: 800, score: 1750, power: 170 },
+            { id: 'cpu21', name: 'Celeron E3400', type: 'cpu', info: '2.6GHz | 2 Nucleos', price: 20, score: 20, power: 65 },
+            { id: 'cpu22', name: 'Athlon II X2 250', type: 'cpu', info: '3.0GHz | 2 Nucleos', price: 15, score: 25, power: 65 },
+            { id: 'cpu23', name: 'Phenom II X4 965', type: 'cpu', info: '3.4GHz | 4 Nucleos', price: 30, score: 80, power: 125 },
+            { id: 'cpu24', name: 'Core 2 Quad Q6600', type: 'cpu', info: '2.4GHz | 4 Nucleos', price: 10, score: 60, power: 95 },
+            { id: 'cpu25', name: 'Xeon X5675 (AliExpress)', type: 'cpu', info: '3.06GHz | 6 Nucleos', price: 40, score: 320, power: 95 },
+            { id: 'cpu26', name: 'Ryzen 5 2600', type: 'cpu', info: '3.4GHz | 6 Nucleos', price: 120, score: 450, power: 65 },
+            { id: 'cpu27', name: 'Intel i7-2600K', type: 'cpu', info: '3.4GHz | 4 Nucleos', price: 70, score: 180, power: 95 },
+            { id: 'cpu28', name: 'Batata 3000 HZ 🥔⚡', type: 'cpu', info: 'Faz chá de batata', price: 999, score: 3000, power: 1000 },
+
+            // 🎮 GPUs (Score: Performance Gráfica | Power: Consumo em Watts)
+            { id: 'gpu1', name: 'Intel HD Graphics', type: 'gpu', info: 'Integrada básica', price: 0, score: 10, power: 5 },
+            { id: 'gpu2', name: 'GeForce 9800 GT', type: 'gpu', info: 'Muito antiga', price: 10, score: 25, power: 105 },
+            { id: 'gpu3', name: 'GeForce GT 730', type: 'gpu', info: 'Ruim', price: 30, score: 35, power: 38 },
+            { id: 'gpu4', name: 'Radeon HD 5770', type: 'gpu', info: 'Ruim', price: 40, score: 45, power: 108 },
+            { id: 'gpu5', name: 'GeForce GTX 560 Ti', type: 'gpu', info: 'Média', price: 60, score: 80, power: 170 },
+            { id: 'gpu6', name: 'GeForce GTX 750 Ti', type: 'gpu', info: 'Média', price: 80, score: 150, power: 60 },
+            { id: 'gpu7', name: 'Radeon R7 260X', type: 'gpu', info: 'Média', price: 90, score: 140, power: 115 },
+            { id: 'gpu8', name: 'Radeon RX 550', type: 'gpu', info: 'Ruim', price: 70, score: 130, power: 50 },
+            { id: 'gpu9', name: 'GeForce GTX 960', type: 'gpu', info: 'Boa', price: 120, score: 280, power: 120 },
+            { id: 'gpu10', name: 'GTX 1650', type: 'gpu', info: 'Boa', price: 160, score: 350, power: 75 },
+            { id: 'gpu11', name: 'Radeon RX 470', type: 'gpu', info: 'Boa', price: 180, score: 450, power: 120 },
+            { id: 'gpu12', name: 'GeForce GTX 1060 6GB', type: 'gpu', info: 'Boa', price: 220, score: 550, power: 120 },
+            { id: 'gpu13', name: 'Radeon RX 580', type: 'gpu', info: 'Boa', price: 250, score: 520, power: 185 },
+            { id: 'gpu14', name: 'GeForce GTX 1070', type: 'gpu', info: 'Ótima', price: 300, score: 800, power: 150 },
+            { id: 'gpu15', name: 'Radeon RX Vega 56', type: 'gpu', info: 'Ótima', price: 400, score: 850, power: 210 },
+            { id: 'gpu16', name: 'GeForce RTX 2060', type: 'gpu', info: 'Ótima', price: 420, score: 950, power: 160 },
+            { id: 'gpu17', name: 'Radeon RX 6600', type: 'gpu', info: 'Ótima', price: 500, score: 1050, power: 132 },
+            { id: 'gpu18', name: 'GTX 1660 Super', type: 'gpu', info: 'Ótima', price: 550, score: 750, power: 125 },
+            { id: 'gpu19', name: 'RTX 2080 Ti', type: 'gpu', info: 'Excelente', price: 1000, score: 1600, power: 250 },
+            { id: 'gpu20', name: 'RX 6800 XT', type: 'gpu', info: 'Excelente', price: 1200, score: 1900, power: 300 },
+            { id: 'gpu21', name: 'RTX 3060', type: 'gpu', info: 'Excelente', price: 300, score: 1100, power: 170 },
+            { id: 'gpu22', name: 'RTX 3080', type: 'gpu', info: 'Excelente', price: 700, score: 1800, power: 320 },
+            { id: 'gpu23', name: 'RTX 4070 Super', type: 'gpu', info: 'Top', price: 650, score: 2100, power: 220 },
+            { id: 'gpu24', name: 'RTX 4080 Super', type: 'gpu', info: 'Top', price: 1200, score: 2800, power: 320 },
+            { id: 'gpu25', name: 'RX 7900 XTX', type: 'gpu', info: 'Top', price: 1500, score: 2900, power: 355 },
+            { id: 'gpu26', name: 'RTX 4090', type: 'gpu', info: 'Lenda', price: 1900, score: 4000, power: 450 },
+
+            // 🧠 RAM (Score: Bônus de Performance | Power: Consumo Fixo Baixo)
+            { id: 'ram1', name: '2GB DDR2', type: 'ram', info: '800MHz', price: 10, score: 10, power: 5 },
+            { id: 'ram2', name: '4GB DDR2', type: 'ram', info: '800MHz', price: 15, score: 20, power: 5 },
+            { id: 'ram3', name: '4GB DDR3', type: 'ram', info: '1333MHz', price: 20, score: 40, power: 5 },
+            { id: 'ram4', name: '6GB DDR3', type: 'ram', info: '1333MHz', price: 25, score: 60, power: 5 },
+            { id: 'ram5', name: '8GB DDR3', type: 'ram', info: '1600MHz', price: 35, score: 80, power: 5 },
+            { id: 'ram6', name: '12GB DDR3', type: 'ram', info: '1600MHz', price: 45, score: 100, power: 5 },
+            { id: 'ram7', name: '16GB DDR3', type: 'ram', info: '1866MHz', price: 60, score: 130, power: 5 },
+            { id: 'ram8', name: '8GB DDR4', type: 'ram', info: '2400MHz', price: 40, score: 150, power: 5 },
+            { id: 'ram9', name: '16GB DDR4', type: 'ram', info: '3200MHz', price: 75, score: 300, power: 5 },
+            { id: 'ram10', name: '24GB DDR4', type: 'ram', info: '3200MHz', price: 150, score: 450, power: 5 },
+            { id: 'ram11', name: '32GB DDR4', type: 'ram', info: '3600MHz', price: 220, score: 600, power: 5 },
+            { id: 'ram12', name: '16GB DDR5', type: 'ram', info: '4800MHz', price: 100, score: 400, power: 5 },
+            { id: 'ram13', name: '32GB DDR5', type: 'ram', info: '5200MHz', price: 220, score: 800, power: 5 },
+            { id: 'ram14', name: '64GB DDR5', type: 'ram', info: '6000MHz', price: 500, score: 1500, power: 5 },
+            { id: 'ram15', name: '128GB DDR5', type: 'ram', info: '6400MHz', price: 900, score: 2500, power: 5 },
+
+            // 💾 Armazenamento (Score: Velocidade de carregamento | Power: Consumo Fixo Baixo)
+            { id: 'ssd1', name: 'HDD IDE 80GB', type: 'ssd', info: 'Antigo', price: 5, score: 5, power: 10 },
+            { id: 'ssd2', name: 'HDD IDE 160GB', type: 'ssd', info: 'Antigo', price: 10, score: 10, power: 10 },
+            { id: 'ssd3', name: 'HDD 320GB', type: 'ssd', info: 'Lento', price: 15, score: 20, power: 10 },
+            { id: 'ssd4', name: 'HDD 500GB', type: 'ssd', info: 'Médio', price: 25, score: 30, power: 10 },
+            { id: 'ssd5', name: 'HDD 1TB', type: 'ssd', info: 'Médio', price: 35, score: 40, power: 10 },
+            { id: 'ssd6', name: 'HDD 2TB', type: 'ssd', info: 'Grande', price: 60, score: 50, power: 10 },
+            { id: 'ssd7', name: 'SSD SATA 120GB', type: 'ssd', info: 'Rápido', price: 25, score: 100, power: 5 },
+            { id: 'ssd8', name: 'SSD SATA 240GB', type: 'ssd', info: 'Rápido', price: 40, score: 110, power: 5 },
+            { id: 'ssd9', name: 'SSD SATA 480GB', type: 'ssd', info: 'Rápido', price: 55, score: 120, power: 5 },
+            { id: 'ssd10', name: 'SSD SATA 500GB', type: 'ssd', info: 'Rápido', price: 60, score: 130, power: 5 },
+            { id: 'ssd11', name: 'SSD SATA 1TB', type: 'ssd', info: 'Rápido', price: 110, score: 150, power: 5 },
+            { id: 'ssd12', name: 'SSD Chinês 256GB', type: 'ssd', info: 'Duvidoso', price: 20, score: 80, power: 5 },
+            { id: 'ssd13', name: 'NVMe Gen3 500GB', type: 'ssd', info: 'Muito rápido', price: 70, score: 300, power: 5 },
+            { id: 'ssd14', name: 'NVMe Gen3 1TB', type: 'ssd', info: 'Muito rápido', price: 110, score: 350, power: 5 },
+            { id: 'ssd15', name: 'NVMe Gen4 1TB', type: 'ssd', info: 'Ultra rápido', price: 200, score: 600, power: 5 },
+            { id: 'ssd16', name: 'NVMe Gen4 2TB', type: 'ssd', info: 'Ultra rápido', price: 260, score: 650, power: 5 },
+            { id: 'ssd17', name: 'NVMe Gen5 1TB', type: 'ssd', info: 'Lenda', price: 400, score: 1200, power: 8 },
+            { id: 'ssd18', name: 'NVMe Gen5 2TB', type: 'ssd', info: 'Lenda', price: 700, score: 1300, power: 8 },
+
+            // 🔌 Fontes (Power: Capacidade Máxima em Watts | Score: Não tem)
+            { id: 'psu1', name: 'Fonte Bomba 200W', type: 'psu', info: 'Péssima', price: 10, score: 0, power: 200 },
+            { id: 'psu2', name: 'Fonte Genérica 400W', type: 'psu', info: 'Ruim', price: 20, score: 0, power: 300 }, // Generica nunca entrega o que diz
+            { id: 'psu3', name: 'Knup 500W', type: 'psu', info: 'Média', price: 35, score: 0, power: 400 },
+            { id: 'psu4', name: 'Fonte Genérica 600W', type: 'psu', info: 'Média', price: 45, score: 0, power: 450 },
+            { id: 'psu5', name: 'Fonte Gamer RGB (Fake)', type: 'psu', info: 'Fake', price: 60, score: 0, power: 500 },
+            { id: 'psu6', name: 'EVGA 500W 80+', type: 'psu', info: 'Boa', price: 80, score: 0, power: 500 },
+            { id: 'psu7', name: 'Corsair CV550 80+', type: 'psu', info: 'Boa', price: 85, score: 0, power: 550 },
+            { id: 'psu8', name: 'Cooler Master 650W', type: 'psu', info: 'Boa', price: 95, score: 0, power: 650 },
+            { id: 'psu9', name: 'Corsair 750W', type: 'psu', info: 'Ótima', price: 150, score: 0, power: 750 },
+            { id: 'psu10', name: 'Corsair RM750x', type: 'psu', info: 'Ótima', price: 180, score: 0, power: 750 },
+            { id: 'psu11', name: 'Seasonic Focus 850W', type: 'psu', info: 'Ótima', price: 200, score: 0, power: 850 },
+            { id: 'psu12', name: 'XPG Core Reactor 850W', type: 'psu', info: 'Ótima', price: 210, score: 0, power: 850 },
+            { id: 'psu13', name: 'Corsair HX1000', type: 'psu', info: 'Top', price: 350, score: 0, power: 1000 },
+            { id: 'psu14', name: 'ROG 1200W Platinum', type: 'psu', info: 'Top', price: 420, score: 0, power: 1200 },
+            { id: 'psu15', name: 'ROG Thor 1200W', type: 'psu', info: 'Top', price: 450, score: 0, power: 1200 },
+            { id: 'psu16', name: 'Be Quiet! 1600W Titanium', type: 'psu', info: 'Lenda', price: 999, score: 0, power: 1600 }
+        ];
+
+        // Função para selecionar a peça no inventário
+        function selectItem(item) {
+            window.selectedItem = item;
+            updateStatus(`Selecionado: ${item.name} (Clique num slot para instalar)`, "text-blue-400");
+            
+            // Highlight visual na peça selecionada
+            document.querySelectorAll('.component-card').forEach(c => c.style.borderColor = 'rgba(255,255,255,0.05)');
+            event.currentTarget.style.borderColor = '#3b82f6';
+        }
+
+        // Função para saber em qual slot o jogador clicou
+        function handleSlotInteraction(type, index = null) {
+            if (build[type] && (type !== 'ram' || build.ram[index])) {
+                removeComponent(type, index);
+            } else {
+                tryInstall(type, index);
+            }
+        }
+
+        let career = { active: false, money: 1000, completed: 0, current: null };
+        let build = { cpu: null, gpu: null, ram: [null, null, null, null], ssd: null, psu: null };
+        let totalSpent = 0;
+
+        function setMode(mode) {
+            career.active = (mode === 'career');
+            document.getElementById('career-hud').classList.toggle('hidden', !career.active);
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.id === `btn-${mode}`));
+            document.getElementById('mode-display').innerText = `MODO: ${mode.toUpperCase()}`;
+            resetBuild();
+            if (career.active) loadNextContract();
+            else document.getElementById('contract-card').classList.add('hidden');
+            filterCategory('cpu');
+        }
+
+        function filterCategory(cat) {
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.toggle('active', b.dataset.type === cat));
+            const list = document.getElementById('inventory-list');
+            list.innerHTML = '';
+            const items = cat === 'all' ? database : database.filter(i => i.type === cat);
+            
+            items.forEach(item => {
+                // Lógica de cores baseada no score
+                let tierClass = 'tier-low';
+                let tierName = 'Comum';
+                
+                if (item.score >= 1500) { tierClass = 'tier-ultra'; tierName = 'Lendário'; }
+                else if (item.score >= 800) { tierClass = 'tier-high'; tierName = 'Épico'; }
+                else if (item.score >= 300) { tierClass = 'tier-mid'; tierName = 'Raro'; }
+
+                const card = document.createElement('div');
+                card.className = `component-card p-3 rounded-lg flex justify-between items-center mb-2 ${tierClass}`;
+                card.onclick = () => selectItem(item);
+                
+                card.innerHTML = `
+                    <div class="overflow-hidden">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${tierName}</div>
+                        <div class="text-[12px] font-black text-white truncate">${item.name}</div>
+                        <div class="flex gap-2 mt-1">
+                            <span class="badge text-blue-400">⚡ ${item.info}</span>
+                            <span class="badge text-orange-400">⭐ Score: ${item.score}</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[12px] font-bold text-emerald-400">€${item.price}</div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function tryInstall(type, index = null) {
+            const item = window.selectedItem;
+            if (!item || item.type !== type) {
+                updateStatus("Selecione a peça correta primeiro!", "text-red-500");
+                return;
+            }
+
+            if (career.active && (totalSpent + item.price > career.money)) {
+                updateStatus("Saldo insuficiente!", "text-red-500");
+                return;
+            }
+
+            if (type === 'ram') {
+                build.ram[index] = item;
+                const slot = document.getElementById(`slot-ram-${index + 1}`);
+                slot.classList.add('installed');
+                slot.innerHTML = `<div class="ram-fill"></div>`;
+            } else {
+                build[type] = item;
+                const slot = document.getElementById(`slot-${type}`);
+                slot.classList.add('installed');
+                slot.innerHTML = `<i class="fas fa-check text-blue-400"></i>`;
+            }
+
+            totalSpent += item.price;
+            updateUI();
+        }
+
+        function removeComponent(type, index = null) {
+            let itemToRemove;
+            if (type === 'ram') {
+                itemToRemove = build.ram[index];
+                build.ram[index] = null;
+                const slot = document.getElementById(`slot-ram-${index + 1}`);
+                slot.classList.remove('installed');
+                slot.innerHTML = '';
+            } else {
+                itemToRemove = build[type];
+                build[type] = null;
+                const slot = document.getElementById(`slot-${type}`);
+                slot.classList.remove('installed');
+                // Restaurar ícone original
+                if(type === 'cpu') slot.innerHTML = '<i class="fas fa-microchip text-slate-800 text-3xl"></i>';
+                if(type === 'gpu') slot.innerHTML = '<span class="text-[9px] text-slate-800 font-bold uppercase">PCI Express x16 Slot</span>';
+                if(type === 'ssd') slot.innerHTML = '<span class="text-[8px] text-slate-800 font-bold">Storage Slot</span>';
+                if(type === 'psu') slot.innerHTML = '<i class="fas fa-bolt text-slate-800 text-2xl"></i>';
+            }
+
+            totalSpent -= itemToRemove.price;
+            updateStatus(`Removido: ${itemToRemove.name}`, "text-orange-400");
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('total-cost').innerText = `€ ${totalSpent}`;
+            if (career.active) document.getElementById('career-money').innerText = `€ ${career.money - totalSpent}`;
+            
+            const isComplete = build.cpu && build.gpu && build.ram.some(r => r !== null) && build.ssd && build.psu;
+            document.getElementById('btn-benchmark').classList.toggle('hidden', !isComplete);
+        }
+
+        function loadNextContract() {
+            const contratosPossiveis = [
+                { n: "PC de Escritório", minS: 250, maxB: 500, reward: 120, d: "Preciso apenas de algo para o Word e Excel." },
+                { n: "Estação de Estudo", minS: 400, maxB: 700, reward: 180, d: "Um computador para aulas online e muitas abas do Chrome." },
+                { n: "PC Gaming Entrada", minS: 850, maxB: 1200, reward: 350, d: "Quero jogar jogos leves como CS:GO e Valorant." },
+                { n: "PC Gamer Intermédio", minS: 1400, maxB: 1800, reward: 500, d: "Preciso de performance para jogar em 1440p." },
+                { n: "Máquina de Streamer", minS: 2200, maxB: 3000, reward: 900, d: "Vou jogar e fazer live ao mesmo tempo, preciso de poder!" },
+                { n: "Edição Profissional", minS: 3200, maxB: 5000, reward: 1500, d: "Trabalho com 4K, não quero travamentos." },
+                { n: "O Entusiasta", minS: 5000, maxB: 8500, reward: 2500, d: "O dinheiro não é problema. Quero o melhor que existir!" }
+            ];
+            
+            let index = Math.min(career.completed, contratosPossiveis.length - 1);
+            const base = contratosPossiveis[index];
+            
+            career.current = {
+                name: base.n,
+                budget: base.maxB,
+                reward: base.reward,
+                reqScore: base.minS + (career.completed * 40), 
+                desc: base.d,
+                event: null
+            };
+
+            // SORTEIO DE EVENTO (Aumentei para 60% para veres mais eventos)
+            if (Math.random() < 0.6) {
+                const eventos = [
+                    // EVENTOS POSITIVOS
+                    { title: "Cliente Generoso", desc: "Dá uma gorjeta extra se cumprir o objetivo.", modReward: 1.5, modBudget: 1, type: 'success', msg: "💰 Bónus de Recompensa!" },
+                    { title: "Urgência Máxima", desc: "O cliente precisa do PC para ontem! Paga muito bem.", modReward: 2.2, modBudget: 1.1, type: 'success', msg: "🔥 Recompensa Dupla!" },
+                    { title: "Patrocínio", desc: "Uma marca local vai pagar os custos extras.", modReward: 1.1, modBudget: 2.0, type: 'success', msg: "💎 Orçamento Extra!" },
+                    { title: "Black Friday", desc: "Promoção louca! Tudo metade do preço no orçamento.", modReward: 0.8, modBudget: 1.8, type: 'success', msg: "🛒 Promoção Ativa!" },
+
+                    // EVENTOS NEGATIVOS (DANGER)
+                    { title: "Crise Económica", desc: "O orçamento do cliente foi cortado de repente!", modReward: 1, modBudget: 0.6, type: 'danger', msg: "📉 Orçamento Reduzido!" },
+                    { title: "Lote Defeituoso", desc: "Peças de má qualidade. Precisas de mais score para compensar.", modReward: 1.4, modBudget: 1, type: 'danger', msg: "⚠️ Dificuldade Técnica!" },
+                    { title: "Inflação Galopante", desc: "O hardware subiu de preço! Orçamento apertado.", modReward: 1.2, modBudget: 0.75, type: 'danger', msg: "💸 Preços Altos!" },
+                    { title: "Exigência Visual", desc: "O cliente quer performance extrema com pouco dinheiro.", modReward: 1.1, modBudget: 0.85, type: 'danger', msg: "💢 Cliente Difícil!" },
+                    
+                    // EVENTO ESPECIAL (CHAOS)
+                    { title: "Vírus de Benchmark", desc: "O software de teste está pesado. O score exigido dobrou!", modReward: 3.0, modBudget: 1.3, type: 'danger', msg: "👾 Erro de Sistema!" }
+                ];
+                
+                career.current.event = eventos[Math.floor(Math.random() * eventos.length)];
+                
+                // Aplica os modificadores
+                career.current.budget = Math.floor(career.current.budget * career.current.event.modBudget);
+                career.current.reward = Math.floor(career.current.reward * career.current.event.modReward);
+                
+                // Ajustes especiais de Score
+                if(career.current.event.title === "Lote Defeituoso") career.current.reqScore = Math.floor(career.current.reqScore * 1.3);
+                if(career.current.event.title === "Vírus de Benchmark") career.current.reqScore = Math.floor(career.current.reqScore * 2.0);
+            }
+            
+            // Atualiza a Interface
+            document.getElementById('contract-card').classList.remove('hidden');
+            document.getElementById('contract-name').innerText = career.current.name;
+            document.getElementById('contract-desc').innerText = career.current.desc;
+            document.getElementById('contract-budget').innerText = `€ ${career.current.budget.toLocaleString()}`;
+            document.getElementById('contract-reward').innerText = `€ ${career.current.reward.toLocaleString()}`;
+            
+            const reqsDiv = document.getElementById('contract-reqs');
+            let eventHtml = '';
+            
+            if(career.current.event) {
+                // Cores dinâmicas para o cartão de evento
+                const colorClass = career.current.event.type === 'danger' ? 'border-red-500/50 bg-red-950/40' : 'border-emerald-500/50 bg-emerald-950/40';
+                const textClass = career.current.event.type === 'danger' ? 'text-red-400' : 'text-emerald-400';
+
+                eventHtml = `
+                    <div class="event-card p-3 rounded-lg border ${colorClass} mb-4 shadow-lg shadow-black/50">
+                        <div class="${textClass} text-[10px] font-black tracking-[0.2em] uppercase mb-1">${career.current.event.msg}</div>
+                        <div class="text-[12px] text-white font-bold leading-none mb-1">${career.current.event.title}</div>
+                        <div class="text-[10px] text-slate-400 leading-tight italic">"${career.current.event.desc}"</div>
+                    </div>
+                `;
+            }
+
+            reqsDiv.innerHTML = eventHtml + `
+                <div class="bg-slate-900/50 p-2 rounded border border-white/5">
+                    <div class="text-[9px] text-blue-300 font-bold uppercase tracking-tighter mb-1">Objetivo de Performance Mínimo:</div>
+                    <div class="text-[14px] text-white font-black flex items-center gap-2">
+                        <i class="fas fa-bolt text-yellow-400"></i> ${career.current.reqScore.toLocaleString()} PTS
+                    </div>
+                </div>
+            `;
+        }
+
+
+        function runBenchmark() {
+            document.getElementById('benchmark-modal').classList.remove('hidden');
+            
+            setTimeout(() => {
+                // 1. Calcular Totais
+                let totalScore = 0;
+                let totalPowerDraw = 0;
+                let psuCapacity = build.psu ? build.psu.power : 0;
+
+                // Somar CPU
+                if(build.cpu) { totalScore += build.cpu.score; totalPowerDraw += build.cpu.power; }
+                // Somar GPU
+                if(build.gpu) { totalScore += build.gpu.score; totalPowerDraw += build.gpu.power; }
+                // Somar RAM (cada pente conta)
+                build.ram.forEach(r => { if(r) { totalScore += (r.score || 50); totalPowerDraw += 5; } });
+
+                // 2. Validar Condições
+                const budgetOk = totalSpent <= career.current.budget;
+                const powerOk = totalPowerDraw <= psuCapacity;
+                const scoreOk = totalScore >= career.current.reqScore;
+
+                document.getElementById('bench-loading').classList.add('hidden');
+                document.getElementById('bench-results').classList.remove('hidden');
+                
+                const title = document.getElementById('result-title');
+                const msg = document.getElementById('result-msg');
+
+                if (career.active) {
+                    if (budgetOk && powerOk && scoreOk) {
+                        title.innerText = "CLIENTE SATISFEITO!";
+                        title.className = "text-xl font-black text-green-500";
+                        msg.innerText = `Performance final: ${totalScore} pts. Consumo: ${totalPowerDraw}W / ${psuCapacity}W`;
+                        career.money += career.current.reward;
+                        career.completed++;
+                    } else {
+                        title.innerText = "BUILD REJEITADA";
+                        title.className = "text-xl font-black text-red-500";
+                        msg.innerHTML = `
+                            ${!budgetOk ? "❌ Acima do orçamento!<br>" : ""}
+                            ${!powerOk ? "❌ A fonte explodiu! (Consumo excessivo)<br>" : ""}
+                            ${!scoreOk ? "❌ PC muito lento para o cliente.<br>" : ""}
+                        `;
+                    }
+                }
+            }, 1500);
+        }
+
+        function resetBuild() {
+            build = { cpu: null, gpu: null, ram: [null, null, null, null], ssd: null, psu: null };
+            totalSpent = 0;
+            document.querySelectorAll('.case-slot').forEach(s => {
+                s.classList.remove('installed');
+                s.innerHTML = '';
+            });
+            // Defaults
+            document.getElementById('slot-cpu').innerHTML = '<i class="fas fa-microchip text-slate-800 text-3xl"></i>';
+            document.getElementById('slot-gpu').innerHTML = '<span class="text-[9px] text-slate-800 font-bold uppercase">PCI Express x16 Slot</span>';
+            document.getElementById('slot-ssd').innerHTML = '<span class="text-[8px] text-slate-800 font-bold">Storage Slot</span>';
+            document.getElementById('slot-psu').innerHTML = '<i class="fas fa-bolt text-slate-800 text-2xl"></i>';
+            updateUI();
+        }
+
+        function closeBenchmark() {
+            document.getElementById('benchmark-modal').classList.add('hidden');
+            document.getElementById('bench-loading').classList.remove('hidden');
+            document.getElementById('bench-results').classList.add('hidden');
+            resetBuild();
+            if (career.active) loadNextContract();
+        }
+
+        function updateStatus(msg, colorClass) {
+            const status = document.getElementById('status-text');
+            status.innerText = msg;
+            status.className = `status-msg ${colorClass}`;
+        }
+
+        setMode('sandbox');
+    </script>
+</body>
+</html>
