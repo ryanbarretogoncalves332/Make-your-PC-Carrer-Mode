@@ -217,7 +217,6 @@
     <script>
         // Banco de dados com as novas especificações
         const database = [
-            // 🧠 CPUs (Score: Performance Multi-core | Power: TDP em Watts)
             { id: 'cpu1', name: 'i3-12100F', type: 'cpu', info: '3.3GHz | 4 Nucleos', price: 110, score: 450, power: 65 },
             { id: 'cpu2', name: 'Ryzen 5 5600', type: 'cpu', info: '3.5GHz | 6 Nucleos', price: 160, score: 650, power: 65 },
             { id: 'cpu3', name: 'i5-13600K', type: 'cpu', info: '3.5GHz | 14 Nucleos', price: 320, score: 1100, power: 125 },
@@ -247,7 +246,6 @@
             { id: 'cpu27', name: 'Intel i7-2600K', type: 'cpu', info: '3.4GHz | 4 Nucleos', price: 70, score: 180, power: 95 },
             { id: 'cpu28', name: 'Batata 3000 HZ 🥔⚡', type: 'cpu', info: 'Faz chá de batata', price: 999, score: 3000, power: 1000 },
 
-            // 🎮 GPUs (Score: Performance Gráfica | Power: Consumo em Watts)
             { id: 'gpu1', name: 'Intel HD Graphics', type: 'gpu', info: 'Integrada básica', price: 0, score: 10, power: 5 },
             { id: 'gpu2', name: 'GeForce 9800 GT', type: 'gpu', info: 'Muito antiga', price: 10, score: 25, power: 105 },
             { id: 'gpu3', name: 'GeForce GT 730', type: 'gpu', info: 'Ruim', price: 30, score: 35, power: 38 },
@@ -275,7 +273,6 @@
             { id: 'gpu25', name: 'RX 7900 XTX', type: 'gpu', info: 'Top', price: 1500, score: 2900, power: 355 },
             { id: 'gpu26', name: 'RTX 4090', type: 'gpu', info: 'Lenda', price: 1900, score: 4000, power: 450 },
 
-            // 🧠 RAM (Score: Bônus de Performance | Power: Consumo Fixo Baixo)
             { id: 'ram1', name: '2GB DDR2', type: 'ram', info: '800MHz', price: 10, score: 10, power: 5 },
             { id: 'ram2', name: '4GB DDR2', type: 'ram', info: '800MHz', price: 15, score: 20, power: 5 },
             { id: 'ram3', name: '4GB DDR3', type: 'ram', info: '1333MHz', price: 20, score: 40, power: 5 },
@@ -292,7 +289,6 @@
             { id: 'ram14', name: '64GB DDR5', type: 'ram', info: '6000MHz', price: 500, score: 1500, power: 5 },
             { id: 'ram15', name: '128GB DDR5', type: 'ram', info: '6400MHz', price: 900, score: 2500, power: 5 },
 
-            // 💾 Armazenamento (Score: Velocidade de carregamento | Power: Consumo Fixo Baixo)
             { id: 'ssd1', name: 'HDD IDE 80GB', type: 'ssd', info: 'Antigo', price: 5, score: 5, power: 10 },
             { id: 'ssd2', name: 'HDD IDE 160GB', type: 'ssd', info: 'Antigo', price: 10, score: 10, power: 10 },
             { id: 'ssd3', name: 'HDD 320GB', type: 'ssd', info: 'Lento', price: 15, score: 20, power: 10 },
@@ -311,8 +307,7 @@
             { id: 'ssd16', name: 'NVMe Gen4 2TB', type: 'ssd', info: 'Ultra rápido', price: 260, score: 650, power: 5 },
             { id: 'ssd17', name: 'NVMe Gen5 1TB', type: 'ssd', info: 'Lenda', price: 400, score: 1200, power: 8 },
             { id: 'ssd18', name: 'NVMe Gen5 2TB', type: 'ssd', info: 'Lenda', price: 700, score: 1300, power: 8 },
-
-            // 🔌 Fontes (Power: Capacidade Máxima em Watts | Score: Não tem)
+            
             { id: 'psu1', name: 'Fonte Bomba 200W', type: 'psu', info: 'Péssima', price: 10, score: 0, power: 200 },
             { id: 'psu2', name: 'Fonte Genérica 400W', type: 'psu', info: 'Ruim', price: 20, score: 0, power: 300 }, // Generica nunca entrega o que diz
             { id: 'psu3', name: 'Knup 500W', type: 'psu', info: 'Média', price: 35, score: 0, power: 400 },
